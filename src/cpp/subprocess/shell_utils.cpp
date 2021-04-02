@@ -19,12 +19,16 @@
 #include <stdlib.h>
 #include <map>
 #include <mutex>
-#include <filesystem>
+#include <experimental/filesystem>
 #include <iostream>
 #include <sstream>
 
 #include "ProcessBuilder.hpp"
 using std::isspace;
+
+namespace std {
+    namespace filesystem = experimental::filesystem;
+};
 
 namespace subprocess {
     std::string getcwd() {
@@ -228,8 +232,8 @@ namespace subprocess {
             .cout(PipeOption::pipe)
             .cerr(PipeOption::cout)
             .run();
-        
-        
+
+
         since c++20 we can do this
         CompletedProcess process = subprocess::run({path, "--version"}, {
             .cout = PipeOption::pipe,
