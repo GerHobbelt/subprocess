@@ -38,6 +38,7 @@ endif()
 
 add_subdirectory(src/cpp subprocess)
 
+# NOTE: doesn't compile on Windows
 # TODO testing
-enable_testing()
-add_subdirectory(test)
+# enable_testing()
+# add_subdirectory(test)
