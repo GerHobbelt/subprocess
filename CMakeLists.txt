@@ -4,6 +4,12 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Release/Debug")
 endif()
 
+if(PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(SUBPROCESS_MASTER_PROJECT ON)
+endif()
+
+option(BUILD_TESTS "Build tests" ${SUBPROCESS_MASTER_PROJECT})
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CheckCXXCompilerFlag)
 
@@ -40,5 +46,7 @@ add_subdirectory(src/cpp subprocess)
 
 # NOTE: doesn't compile on Windows
 # TODO testing
-# enable_testing()
-# add_subdirectory(test)
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test)
+endif()
