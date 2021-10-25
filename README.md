@@ -35,7 +35,7 @@ for further documentation.
 
 # Integration
 
-##  Adhoc
+## Adhoc
 
 1. copy files in src/cpp to your project.
 2. add the top folder as include.
@@ -185,3 +185,13 @@ All tests pass on linux & mac. Most pass under mingw & MSVC.
 
 - omg setting check=true is fixed. What a typo
 
+
+# Alternatives (notes by [*\[Gho]*](https://github.com/GerHobbelt))
+
+- https://github.com/sheredom/subprocess.h :: supports Windows. However, its API is a little *off* to my tastes, when it comes to redirecting process I/O, e.g. the use of `FILE*` for that.
+- https://github.com/pnappa/subprocesscpp :: no Windows support.
+- https://github.com/imalyavskiy/SilentConsoleSubprocess :: just some sample code to show how to invvoke subprocesses without a visible console window on Windows.
+- https://github.com/lbartnik/subprocess :: includes Windows support. Is meant to be used with R.
+- https://github.com/rajatjain1997/subprocess :: no Windows support. When it's not cross-platform like that, then it's just a layer of idiom on top of the Linux APIs.
+- https://github.com/arun11299/cpp-subprocess :: includes Windows support. Comes closest to this repo, at least from the initial glance at the API docs in its README. It is unclear, however, if `stdout` and `stderr` can be clearly *separated* and processed individually with this lib. (Which is an important asset to have when invoking subprocesses which report failure/debug info via `stderr` while feeding us text and *binary* data via `stdout`, as is my use case.)
+- 
