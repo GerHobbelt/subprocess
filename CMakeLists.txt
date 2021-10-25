@@ -46,7 +46,7 @@ add_subdirectory(src/cpp subprocess)
 
 # NOTE: doesn't compile on Windows
 # TODO testing
-if(BUILD_TESTS)
+if(BUILD_TESTS OR 1)
     enable_testing()
     add_subdirectory(test)
 endif()
