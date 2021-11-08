@@ -19,16 +19,21 @@
 #include <stdlib.h>
 #include <map>
 #include <mutex>
-#include <experimental/filesystem>
 #include <iostream>
 #include <sstream>
 
 #include "ProcessBuilder.hpp"
 using std::isspace;
 
-namespace std {
-    namespace filesystem = experimental::filesystem;
-};
+
+#if __has_include(<filesystem>)
+	#include <filesystem>
+#else
+	#include <experimental/filesystem>
+    namespace std {
+        namespace filesystem = experimental::filesystem;
+    };
+#endif
 
 namespace subprocess {
     std::string getcwd() {
