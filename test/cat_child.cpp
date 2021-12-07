@@ -7,6 +7,9 @@
 #else
 #include <unistd.h>
 #endif
+
+#include "monolithic_examples.h"
+
 template<typename T, typename V>
 bool contains(const std::vector<T>& container, const V& value) {
     for (auto& test : container) {
@@ -23,8 +26,15 @@ enum ExitCode {
     cout_cerr_fail,
     exception_thrown
 };
-int main(int argc, char** argv) {
-    std::vector<std::string> args;
+
+
+#if defined(BUILD_MONOLITHIC)
+#define main(cnt, arr)      subproc_cat_child_main(cnt, arr)
+#endif
+
+int main(int argc, const char** argv)
+{
+	std::vector<std::string> args;
     for (int i = 1; i < argc; ++i)
         args.push_back(argv[i]);
 

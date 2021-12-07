@@ -1,6 +1,9 @@
 #include <subprocess.hpp>
 #include <thread>
 #include <cstring>
+#include <iostream>
+
+#include "monolithic_examples.h"
 
 void simple() {
     using subprocess::CompletedProcess;
@@ -85,10 +88,46 @@ void popen_examples() {
     if (write_thread.joinable())
         write_thread.join();
 }
-int main(int argc, char** argv) {
-    std::cout << "running basic examples\n";
-    simple();
-    std::cout << "running popen_examples\n";
-    popen_examples();
-    return 0;
+
+
+
+#if defined(BUILD_MONOLITHIC)
+#define main(cnt, arr)      subproc_examples_main(cnt, arr)
+#endif
+
+int main(int argc, const char** argv)
+{
+	try
+	{
+		std::cout << "running basic examples\n";
+		simple();
+		std::cout << "running popen_examples\n";
+		popen_examples();
+		return EXIT_SUCCESS;
+	}
+	catch (const struct subprocess::CommandNotFoundError& ex)
+	{
+		std::cout << "Command Not Found Error: " << ex.what() << std::endl;
+	}
+	catch (const struct subprocess::OSError& ex)
+	{
+		std::cout << "OS Error: " << ex.what() << std::endl;
+	}
+	catch (const struct subprocess::SubprocessError& ex)
+	{
+		std::cout << "SubProcess Error: " << ex.what() << std::endl;
+	}
+	catch (const std::runtime_error& ex)
+	{
+		std::cout << "RunTime Error: " << ex.what() << std::endl;
+	}
+	catch (const std::exception& ex)
+	{
+		std::cout << "Exception Error: " << ex.what() << std::endl;
+	}
+	catch (...)
+	{
+		std::cout << "Unidentified System Error!" << std::endl;
+	}
+	return EXIT_FAILURE;
 }

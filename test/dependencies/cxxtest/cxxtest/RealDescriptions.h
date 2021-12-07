@@ -219,7 +219,7 @@ class RealWorldDescription : public WorldDescription
 {
 public:
     static List &suites();
-    const char *worldName() const { return _worldName;}
+    virtual const char *worldName() const override { return _worldName; }
     unsigned numSuites(void) const;
     unsigned numTotalTests(void) const;
     SuiteDescription *firstSuite();
@@ -232,7 +232,8 @@ public:
     bool tearDown();
     static void reportError(const char *message);
 
-    static const char *_worldName;
+private:
+	static const char *_worldName;
 };
 
 void activateAllTests();

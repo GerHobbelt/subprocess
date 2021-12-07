@@ -26,4 +26,9 @@
 #include <cxxtest/TestSuite.cpp>
 #include <cxxtest/TestTracker.cpp>
 
+namespace CxxTest
+{
+	const char* RealWorldDescription::_worldName = "cxxtest";
+}
+
 #endif // __cxxtest__Root_cpp__

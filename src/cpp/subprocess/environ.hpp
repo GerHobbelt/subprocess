@@ -49,10 +49,10 @@ namespace subprocess {
     class CwdGuard {
     public:
         CwdGuard() {
-            mCwd = subprocess::getcwd();
+            mCwd = subprocess::get_cwd();
         }
         ~CwdGuard() {
-            subprocess::setcwd(mCwd);
+            subprocess::set_cwd(mCwd);
         }
 
     private:

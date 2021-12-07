@@ -2,8 +2,16 @@
 #include <cstring>
 #include <subprocess.hpp>
 
+#include "monolithic_examples.h"
+
 // no echo on windows, so we make this to help test the library
-int main(int argc, char** argv) {
+
+#if defined(BUILD_MONOLITHIC)
+#define main(cnt, arr)      subproc_echo_main(cnt, arr)
+#endif
+
+int main(int argc, const char** argv)
+{
     bool print_space = false;
     std::string use_cerr_str = subprocess::cenv["USE_CERR"];
     bool use_cerr = use_cerr_str == "1";

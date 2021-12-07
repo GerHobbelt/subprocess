@@ -27,10 +27,10 @@
 using std::isspace;
 
 namespace subprocess {
-    std::string getcwd() {
+    std::string get_cwd() {
         return std::filesystem::current_path().string();
     }
-    void setcwd(const std::string& path) {
+    void set_cwd(const std::string& path) {
         std::filesystem::current_path(path);
     }
 }
@@ -138,14 +138,14 @@ namespace subprocess {
         if(is_absolute_path(dir))
             return dir;
         if(relativeTo.empty())
-            relativeTo = subprocess::getcwd();
+            relativeTo = subprocess::get_cwd();
         if(!is_absolute_path(relativeTo)) {
-            relativeTo = join_path(subprocess::getcwd(), relativeTo);
+            relativeTo = join_path(subprocess::get_cwd(), relativeTo);
         }
         return join_path(relativeTo, dir);
     }
 
-    std::string getenv(const std::string& var) {
+    std::string get_env(const std::string& var) {
         const char* ptr = ::getenv(var.c_str());
         if(ptr == nullptr)
             return "";
@@ -153,7 +153,7 @@ namespace subprocess {
     }
     std::string try_exe(std::string path) {
 #ifdef _WIN32
-        std::string path_ext = getenv("PATHEXT");
+        std::string path_ext = get_env("PATHEXT");
         if(path_ext.empty())
             path_ext = "exe";
         if(is_file(path))
@@ -203,7 +203,7 @@ namespace subprocess {
         if(it != cache.end())
             return it->second;
 
-        std::string path_env = getenv("PATH");
+        std::string path_env = get_env("PATH");
         for(std::string test : split(path_env, kPathDelimiter)) {
             if(test.empty())
                 continue;
@@ -254,7 +254,7 @@ namespace subprocess {
         if (!result.empty())
             return result;
 
-        std::string path_env = getenv("PATH");
+        std::string path_env = get_env("PATH");
         for(std::string test : split(path_env, kPathDelimiter)) {
             if(test.empty())
                 continue;

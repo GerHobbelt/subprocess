@@ -7,6 +7,8 @@
 
 #include <subprocess/utf8_to_utf16.hpp>
 
+#include "monolithic_examples.h"
+
 using subprocess::CommandLine;
 using subprocess::CompletedProcess;
 using subprocess::PipeOption;
@@ -391,8 +393,14 @@ public:
 };
 
 
-int main(int argc, char** argv) {
-    using subprocess::abspath;
+
+#if defined(BUILD_MONOLITHIC)
+#define main(cnt, arr)      subproc_basic_test_main(cnt, arr)
+#endif
+
+int main(int argc, const char** argv)
+{
+	using subprocess::abspath;
     std::string path = subprocess::cenv["PATH"];
     std::string more_path = dirname(abspath(argv[0]));
     g_exe_dir = more_path;

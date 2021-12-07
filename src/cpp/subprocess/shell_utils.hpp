@@ -5,7 +5,7 @@
 
 namespace subprocess {
     /** Get the value of environment variable */
-    std::string getenv(const std::string& var);
+    std::string get_env(const std::string& var);
     /** Searches for program in PATH environment variable.
 
         on windows tries adding suffixes specified in PATHEXT environment
@@ -28,9 +28,9 @@ namespace subprocess {
     std::string escape_shell_arg(std::string arg);
 
     /** Gets the current working directory of the process */
-    std::string getcwd();
+    std::string get_cwd();
     /** Sets the current working directory of process. */
-    void setcwd(const std::string& path);
+    void set_cwd(const std::string& path);
 
     /** Converts dir to be absolute path.
 

@@ -4,6 +4,9 @@
 #include <charconv>
 #include <thread>
 #include <string>
+#include <iostream>
+
+#include "monolithic_examples.h"
 
 void sleep_seconds(double seconds) {
     std::chrono::duration<double> duration(seconds);
@@ -11,10 +14,18 @@ void sleep_seconds(double seconds) {
 }
 
 // no echo on windows, so we make this to help test the library
-int main(int argc, char** argv) {
+
+#if defined(BUILD_MONOLITHIC)
+#define main(cnt, arr)      subproc_sleep_main(cnt, arr)
+#endif
+
+int main(int argc, const char** argv)
+{
     bool print_space = false;
-    if (argc != 2)
-        return 1;
+	if (argc != 2) {
+		std::cerr << "subprocess::sleep [seconds]: missing parameter.\n";
+		return 1;
+	}
     double seconds = std::stod(argv[1]);
     sleep_seconds(seconds);
     return 0;
