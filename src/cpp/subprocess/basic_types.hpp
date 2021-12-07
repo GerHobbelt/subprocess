@@ -24,13 +24,13 @@ namespace subprocess {
     #ifdef _WIN32
     /** True if on windows platform. This constant is useful so you can use
         regular if statements instead of ifdefs and have both branches compile
-        therebye reducing chance of compiler error on a different platform.
+        thereby reducing chance of compiler error on a different platform.
     */
     constexpr bool kIsWin32 = true;
     #else
     constexpr bool kIsWin32 = false;
     #endif
-    /*  windows doesnt'h have all of these. The numeric values I hope are
+    /*  windows doesn't have all of these. The numeric values I hope are
         standardized. Posix specifies the number in the standard so most
         systems should be fine.
     */
@@ -74,7 +74,7 @@ namespace subprocess {
     typedef int PipeHandle;
     typedef ::pid_t pid_t;
     
-    /** The path seperator for PATH environment variable. */
+    /** The path separator for PATH environment variable. */
     constexpr char kPathDelimiter = ':';
     // to please windows we can't have this be a constexpr and be standard c++
     /** The value representing an invalid pipe */
@@ -159,7 +159,7 @@ namespace subprocess {
 
     /** Details about a completed process. */
     struct CompletedProcess {
-        /** The args used for the process. This includes the first first arg
+        /** The args used for the process. This includes the first arg
             which is the command/executable itself.
         */
         CommandLine     args;
