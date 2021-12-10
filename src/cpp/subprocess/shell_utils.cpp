@@ -156,7 +156,11 @@ namespace {
 		std::string systemPath;
 
 		// https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexa#remarks
-		rv = RegGetValueA(root, path, key, RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_SZ, &valueType, NULL, &bufSize);
+		HKEY k;
+		rv = RegOpenKeyExA(root, path, 0, KEY_READ, &k);
+		RegCloseKey(k);
+
+		rv = RegGetValueA(root, path, key, RRF_RT_ANY, &valueType, NULL, &bufSize);
 		if (rv == ERROR_SUCCESS) {
 			// when you use the `bufSize` as-is, you'll get ERROR_MORE_DATA for the next call due to env.var. expansions and string sentinel append.
 			bufSize += 4096;
@@ -188,6 +192,14 @@ namespace {
 		}
 		return systemPath;
 	}
+
+	static const std::string basedir(const std::string& path) {
+		size_t pos = path.find_last_of("/\\");
+		if (pos != std::string::npos) {
+			return path.substr(0, pos);
+		}
+		return path;
+	}
 #endif
 
 	std::vector<std::string> get_system_search_paths() {
@@ -195,9 +207,31 @@ namespace {
 #ifdef _WIN32
 		std::string systemPath = get_registry_value(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", "Path");
 		std::string userPath = get_registry_value(HKEY_CURRENT_USER, "Environment", "Path");
+		std::string msysgitPath = get_registry_value(HKEY_LOCAL_MACHINE, "SOFTWARE\\GitForWindows", "InstallPath");
+		std::string tortoisePath1 = basedir(get_registry_value(HKEY_USERS, ".DEFAULT\\Software\\TortoiseGit", "MSysGit"));
+		std::string tortoisePath2 = basedir(get_registry_value(HKEY_USERS, "S-1-5-18\\Software\\TortoiseGit", "MSysGit"));
+		// Computer\HKEY_LOCAL_MACHINE\SOFTWARE\GitForWindows : InstallPath    + MSYS2_PATH=/usr/local/bin:/usr/bin:/bin
+		// Computer\HKEY_USERS\.DEFAULT\Software\TortoiseGit : MSysGit         + ../ + MSYS2_PATH=/usr/local/bin:/usr/bin:/bin
+		// Computer\HKEY_USERS\S-1-5-18\Software\TortoiseGit        <ditto>
+		//
 		std::vector<std::string> rve = split(path_env, subprocess::kPathDelimiter);
 		std::vector<std::string> rvs = split(systemPath, subprocess::kPathDelimiter);
 		std::vector<std::string> rvu = split(userPath, subprocess::kPathDelimiter);
+		std::vector<std::string> rvg = std::vector<std::string>{
+			msysgitPath + "\\usr\\local\\bin",
+			msysgitPath + "\\usr\\bin",
+			msysgitPath + "\\bin"
+		};
+		std::vector<std::string> rvt1 = std::vector<std::string>{
+			tortoisePath1 + "\\usr\\local\\bin",
+			tortoisePath1 + "\\usr\\bin",
+			tortoisePath1 + "\\bin"
+		};
+		std::vector<std::string> rvt2 = std::vector<std::string>{
+			tortoisePath2 + "\\usr\\local\\bin",
+			tortoisePath2 + "\\usr\\bin",
+			tortoisePath2 + "\\bin"
+		};
 		std::unordered_set<std::string> check;
 		std::vector<std::string> rv;
 		for (auto p : rve) {
@@ -213,6 +247,24 @@ namespace {
 			}
 		}
 		for (auto p : rvs) {
+			if (!check.contains(p)) {
+				rv.push_back(p);
+				check.insert(p);
+			}
+		}
+		for (auto p : rvg) {
+			if (!check.contains(p)) {
+				rv.push_back(p);
+				check.insert(p);
+			}
+		}
+		for (auto p : rvt1) {
+			if (!check.contains(p)) {
+				rv.push_back(p);
+				check.insert(p);
+			}
+		}
+		for (auto p : rvt2) {
 			if (!check.contains(p)) {
 				rv.push_back(p);
 				check.insert(p);
