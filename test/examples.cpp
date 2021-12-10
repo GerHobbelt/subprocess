@@ -9,7 +9,8 @@ void simple() {
     using subprocess::CompletedProcess;
     using subprocess::RunBuilder;
     using subprocess::PipeOption;
-    // quick echo it, doesn't capture
+
+	// quick echo it, doesn't capture
     subprocess::run({"echo", "hello", "world"});
 
     // simplest capture output.

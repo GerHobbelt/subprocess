@@ -21,6 +21,10 @@
 #include <mutex>
 #include <iostream>
 #include <sstream>
+#include <unordered_set>
+#if defined(_MSC_VER)
+#include <crtdbg.h>
+#endif
 
 #include "ProcessBuilder.hpp"
 using std::isspace;
@@ -44,7 +48,7 @@ namespace subprocess {
     }
 }
 namespace {
-    // this repititon exists here as I want shell to be fully standalone to
+    // this repetition exists here as I want shell to be fully standalone to
     // use in other projects
     bool is_file(const std::string &path) {
         try {
@@ -62,17 +66,19 @@ namespace {
         std::string item;
 
         while (getline(ss, item, delim)) {
-            result.push_back (item);
+            result.push_back(item);
         }
 
         return result;
     }
+
 #ifdef _WIN32
     bool is_drive(char c) {
         return (c >= 'a' && c <= 'a') || (c >= 'A' && c <= 'Z');
     }
 #endif
-    bool is_absolute_path(const std::string& path) {
+
+	bool is_absolute_path(const std::string& path) {
         if(path.empty())
             return false;
 #ifdef _WIN32
@@ -85,7 +91,6 @@ namespace {
         return false;
 #endif
     }
-
 
     std::string clean_path(std::string path) {
         for(std::size_t i = 0; i < path.size(); ++i) {
@@ -102,6 +107,7 @@ namespace {
             path.resize(path.size()-1);
         return path;
     }
+
     std::string join_path(std::string parent, std::string child) {
         if(child.empty())
             return parent;
@@ -140,7 +146,85 @@ namespace {
         return parent;
     }
 
+#ifdef _WIN32
+	static std::string get_registry_value(HKEY root, const char* path, const char* key) {
+		LSTATUS rv;
+		DWORD valueType;
+		DWORD bufSize;
+		DWORD dstSize;
+		char* strbuf = NULL;
+		std::string systemPath;
+
+		// https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexa#remarks
+		rv = RegGetValueA(root, path, key, RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_SZ, &valueType, NULL, &bufSize);
+		if (rv == ERROR_SUCCESS) {
+			// when you use the `bufSize` as-is, you'll get ERROR_MORE_DATA for the next call due to env.var. expansions and string sentinel append.
+			bufSize += 4096;
+			strbuf = (char*)malloc(bufSize);
+			if (strbuf) {
+				dstSize = bufSize;
+				rv = RegGetValueA(root, path, "ComSpec", RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
+				dstSize = bufSize;
+				rv = RegGetValueA(root, path, "ComSpec", RRF_RT_REG_EXPAND_SZ, &valueType, strbuf, &dstSize);
+				dstSize = bufSize;
+				rv = RegGetValueA(root, path, "ComSpec", RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
+				dstSize = bufSize;
+				rv = RegGetValueA(root, path, "ComSpec", RRF_NOEXPAND | RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
+				dstSize = bufSize;
+				rv = RegGetValueA(root, path, key, RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
+				if (rv == ERROR_SUCCESS) {
+					switch (valueType) {
+					case REG_SZ:
+						systemPath = strbuf;
+						break;
+
+					case REG_EXPAND_SZ:
+						systemPath = strbuf;
+						break;
+					}
+				}
+				free(strbuf);
+			}
+		}
+		return systemPath;
+	}
+#endif
+
+	std::vector<std::string> get_system_search_paths() {
+		std::string path_env = subprocess::get_env("PATH");
+#ifdef _WIN32
+		std::string systemPath = get_registry_value(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", "Path");
+		std::string userPath = get_registry_value(HKEY_CURRENT_USER, "Environment", "Path");
+		std::vector<std::string> rve = split(path_env, subprocess::kPathDelimiter);
+		std::vector<std::string> rvs = split(systemPath, subprocess::kPathDelimiter);
+		std::vector<std::string> rvu = split(userPath, subprocess::kPathDelimiter);
+		std::unordered_set<std::string> check;
+		std::vector<std::string> rv;
+		for (auto p : rve) {
+			if (!check.contains(p)) {
+				rv.push_back(p);
+				check.insert(p);
+			}
+		}
+		for (auto p : rvu) {
+			if (!check.contains(p)) {
+				rv.push_back(p);
+				check.insert(p);
+			}
+		}
+		for (auto p : rvs) {
+			if (!check.contains(p)) {
+				rv.push_back(p);
+				check.insert(p);
+			}
+		}
+		return rv;
+#else
+		return split(path_env, subprocess::kPathDelimiter);
+#endif
+	}
 }
+
 namespace subprocess {
     std::string abspath(std::string dir, std::string relativeTo) {
         dir = clean_path(dir);
@@ -160,6 +244,7 @@ namespace subprocess {
             return "";
         return ptr;
     }
+
     std::string try_exe(std::string path) {
 #ifdef _WIN32
         std::string path_ext = get_env("PATHEXT");
@@ -212,8 +297,7 @@ namespace subprocess {
         if(it != cache.end())
             return it->second;
 
-        std::string path_env = get_env("PATH");
-        for(std::string test : split(path_env, kPathDelimiter)) {
+        for(std::string test : get_system_search_paths()) {
             if(test.empty())
                 continue;
             test += '/';
@@ -255,34 +339,27 @@ namespace subprocess {
         }
         return false;
     }
-    std::string find_program(const std::string& name) {
-        if (name != "python3") {
-            return find_program_in_path(name);
-        }
-        std::string result = find_program_in_path(name);
-        if (!result.empty())
-            return result;
 
-        std::string path_env = get_env("PATH");
-        for(std::string test : split(path_env, kPathDelimiter)) {
-            if(test.empty())
-                continue;
-            test += '/';
-            test += "python";
-            test = try_exe(test);
-            if(!test.empty() && is_file(test)) {
-                if (is_python3(test))
-                    return test;
-            }
-        }
-        return "";
+	std::string find_program(const std::string& name) {
+		std::string rv = find_program_in_path(name);
+
+		if (rv.empty() && name == "python3") {
+			std::string test = find_program_in_path("python");
+			if (!test.empty() && is_file(test)) {
+				if (is_python3(test))
+					rv = std::move(test);
+			}
+		}
+
+        return rv;
     }
 
     void find_program_clear_cache() {
         std::unique_lock<std::mutex> lock(g_program_cache_mutex);
         g_program_cache.clear();
     }
-    std::string escape_shell_arg(std::string arg) {
+
+	std::string escape_shell_arg(std::string arg) {
         bool needs_quote = false;
         for(std::size_t i = 0; i < arg.size(); ++i) {
             // white list
@@ -310,5 +387,4 @@ namespace subprocess {
 
         return result;
     }
-
 }
