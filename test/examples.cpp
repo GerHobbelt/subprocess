@@ -5,7 +5,7 @@
 
 #include "monolithic_examples.h"
 
-void simple() {
+static void simple() {
     using subprocess::CompletedProcess;
     using subprocess::RunBuilder;
     using subprocess::PipeOption;
@@ -49,7 +49,7 @@ void simple() {
 }
 
 
-void popen_examples() {
+static void popen_examples() {
     using subprocess::CompletedProcess;
     using subprocess::RunBuilder;
     using subprocess::Popen;

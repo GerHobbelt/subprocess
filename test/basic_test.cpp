@@ -19,7 +19,8 @@ using subprocess::RunBuilder;
 #else
 #define EOL "\n"
 #endif
-bool is_equal(const CommandLine& a, const CommandLine& b) {
+
+static bool is_equal(const CommandLine& a, const CommandLine& b) {
     if (a.size() != b.size())
         return false;
     for (std::size_t i = 0; i < a.size(); ++i) {
@@ -29,12 +30,12 @@ bool is_equal(const CommandLine& a, const CommandLine& b) {
     return true;
 }
 
-void nop() {
+static void nop() {
     // cxxtest is a bit dumb. We need this to enable exceptions
     throw 32;
 }
 
-std::string dirname(std::string path) {
+static std::string dirname(std::string path) {
     size_t slash_pos = path.size();;
     for (int i = 0; i < path.size(); ++i) {
         if (path[i] == '/' || path[i] == '\\')
@@ -43,9 +44,9 @@ std::string dirname(std::string path) {
     return path.substr(0, slash_pos);
 }
 
-std::string g_exe_dir;
+static std::string g_exe_dir;
 
-void prepend_this_to_path() {
+static void prepend_this_to_path() {
     using subprocess::abspath;
     std::string path = subprocess::cenv["PATH"];
     path = g_exe_dir + subprocess::kPathDelimiter + path;
