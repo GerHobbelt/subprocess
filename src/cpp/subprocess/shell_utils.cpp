@@ -28,6 +28,11 @@ using std::isspace;
 
 #if __has_include(<filesystem>)
 	#include <filesystem>
+#elif __has_include(<ghc/filesystem.hpp>)
+	#include <ghc/filesystem.hpp>
+    namespace std {
+        namespace filesystem = ghc::filesystem;
+    };
 #else
 	#include <experimental/filesystem>
     namespace std {
