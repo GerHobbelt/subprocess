@@ -401,7 +401,7 @@ public:
 
 int main(int argc, const char** argv)
 {
-	using subprocess::abspath;
+    using subprocess::abspath;
     std::string path = subprocess::cenv["PATH"];
     std::string more_path = dirname(abspath(argv[0]));
     g_exe_dir = more_path;

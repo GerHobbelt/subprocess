@@ -31,9 +31,9 @@ using std::isspace;
 
 
 #if __has_include(<filesystem>)
-	#include <filesystem>
+    #include <filesystem>
 #else
-	#include <experimental/filesystem>
+    #include <experimental/filesystem>
     namespace std {
         namespace filesystem = experimental::filesystem;
     };
@@ -78,7 +78,7 @@ namespace {
     }
 #endif
 
-	bool is_absolute_path(const std::string& path) {
+    bool is_absolute_path(const std::string& path) {
         if(path.empty())
             return false;
 #ifdef _WIN32
@@ -147,134 +147,134 @@ namespace {
     }
 
 #ifdef _WIN32
-	static std::string get_registry_value(HKEY root, const char* path, const char* key) {
-		LSTATUS rv;
-		DWORD valueType;
-		DWORD bufSize;
-		DWORD dstSize;
-		char* strbuf = NULL;
-		std::string systemPath;
+    static std::string get_registry_value(HKEY root, const char* path, const char* key) {
+        LSTATUS rv;
+        DWORD valueType;
+        DWORD bufSize;
+        DWORD dstSize;
+        char* strbuf = NULL;
+        std::string systemPath;
 
-		// https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexa#remarks
-		HKEY k;
-		rv = RegOpenKeyExA(root, path, 0, KEY_READ, &k);
-		RegCloseKey(k);
+        // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexa#remarks
+        HKEY k;
+        rv = RegOpenKeyExA(root, path, 0, KEY_READ, &k);
+        RegCloseKey(k);
 
-		rv = RegGetValueA(root, path, key, RRF_RT_ANY, &valueType, NULL, &bufSize);
-		if (rv == ERROR_SUCCESS) {
-			// when you use the `bufSize` as-is, you'll get ERROR_MORE_DATA for the next call due to env.var. expansions and string sentinel append.
-			bufSize += 4096;
-			strbuf = (char*)malloc(bufSize);
-			if (strbuf) {
-				dstSize = bufSize;
-				rv = RegGetValueA(root, path, "ComSpec", RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
-				dstSize = bufSize;
-				rv = RegGetValueA(root, path, "ComSpec", RRF_RT_REG_EXPAND_SZ, &valueType, strbuf, &dstSize);
-				dstSize = bufSize;
-				rv = RegGetValueA(root, path, "ComSpec", RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
-				dstSize = bufSize;
-				rv = RegGetValueA(root, path, "ComSpec", RRF_NOEXPAND | RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
-				dstSize = bufSize;
-				rv = RegGetValueA(root, path, key, RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
-				if (rv == ERROR_SUCCESS) {
-					switch (valueType) {
-					case REG_SZ:
-						systemPath = strbuf;
-						break;
+        rv = RegGetValueA(root, path, key, RRF_RT_ANY, &valueType, NULL, &bufSize);
+        if (rv == ERROR_SUCCESS) {
+            // when you use the `bufSize` as-is, you'll get ERROR_MORE_DATA for the next call due to env.var. expansions and string sentinel append.
+            bufSize += 4096;
+            strbuf = (char*)malloc(bufSize);
+            if (strbuf) {
+                dstSize = bufSize;
+                rv = RegGetValueA(root, path, "ComSpec", RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
+                dstSize = bufSize;
+                rv = RegGetValueA(root, path, "ComSpec", RRF_RT_REG_EXPAND_SZ, &valueType, strbuf, &dstSize);
+                dstSize = bufSize;
+                rv = RegGetValueA(root, path, "ComSpec", RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
+                dstSize = bufSize;
+                rv = RegGetValueA(root, path, "ComSpec", RRF_NOEXPAND | RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
+                dstSize = bufSize;
+                rv = RegGetValueA(root, path, key, RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_SZ, &valueType, strbuf, &dstSize);
+                if (rv == ERROR_SUCCESS) {
+                    switch (valueType) {
+                    case REG_SZ:
+                        systemPath = strbuf;
+                        break;
 
-					case REG_EXPAND_SZ:
-						systemPath = strbuf;
-						break;
-					}
-				}
-				free(strbuf);
-			}
-		}
-		return systemPath;
-	}
+                    case REG_EXPAND_SZ:
+                        systemPath = strbuf;
+                        break;
+                    }
+                }
+                free(strbuf);
+            }
+        }
+        return systemPath;
+    }
 
-	static const std::string basedir(const std::string& path) {
-		size_t pos = path.find_last_of("/\\");
-		if (pos != std::string::npos) {
-			return path.substr(0, pos);
-		}
-		return path;
-	}
+    static const std::string basedir(const std::string& path) {
+        size_t pos = path.find_last_of("/\\");
+        if (pos != std::string::npos) {
+            return path.substr(0, pos);
+        }
+        return path;
+    }
 #endif
 
-	std::vector<std::string> get_system_search_paths() {
-		std::string path_env = subprocess::get_env("PATH");
+    std::vector<std::string> get_system_search_paths() {
+        std::string path_env = subprocess::get_env("PATH");
 #ifdef _WIN32
-		std::string systemPath = get_registry_value(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", "Path");
-		std::string userPath = get_registry_value(HKEY_CURRENT_USER, "Environment", "Path");
-		std::string msysgitPath = get_registry_value(HKEY_LOCAL_MACHINE, "SOFTWARE\\GitForWindows", "InstallPath");
-		std::string tortoisePath1 = basedir(get_registry_value(HKEY_USERS, ".DEFAULT\\Software\\TortoiseGit", "MSysGit"));
-		std::string tortoisePath2 = basedir(get_registry_value(HKEY_USERS, "S-1-5-18\\Software\\TortoiseGit", "MSysGit"));
-		// Computer\HKEY_LOCAL_MACHINE\SOFTWARE\GitForWindows : InstallPath    + MSYS2_PATH=/usr/local/bin:/usr/bin:/bin
-		// Computer\HKEY_USERS\.DEFAULT\Software\TortoiseGit : MSysGit         + ../ + MSYS2_PATH=/usr/local/bin:/usr/bin:/bin
-		// Computer\HKEY_USERS\S-1-5-18\Software\TortoiseGit        <ditto>
-		//
-		std::vector<std::string> rve = split(path_env, subprocess::kPathDelimiter);
-		std::vector<std::string> rvs = split(systemPath, subprocess::kPathDelimiter);
-		std::vector<std::string> rvu = split(userPath, subprocess::kPathDelimiter);
-		std::vector<std::string> rvg = std::vector<std::string>{
-			msysgitPath + "\\usr\\local\\bin",
-			msysgitPath + "\\usr\\bin",
-			msysgitPath + "\\bin"
-		};
-		std::vector<std::string> rvt1 = std::vector<std::string>{
-			tortoisePath1 + "\\usr\\local\\bin",
-			tortoisePath1 + "\\usr\\bin",
-			tortoisePath1 + "\\bin"
-		};
-		std::vector<std::string> rvt2 = std::vector<std::string>{
-			tortoisePath2 + "\\usr\\local\\bin",
-			tortoisePath2 + "\\usr\\bin",
-			tortoisePath2 + "\\bin"
-		};
-		std::unordered_set<std::string> check;
-		std::vector<std::string> rv;
-		for (auto p : rve) {
-			if (!check.contains(p)) {
-				rv.push_back(p);
-				check.insert(p);
-			}
-		}
-		for (auto p : rvu) {
-			if (!check.contains(p)) {
-				rv.push_back(p);
-				check.insert(p);
-			}
-		}
-		for (auto p : rvs) {
-			if (!check.contains(p)) {
-				rv.push_back(p);
-				check.insert(p);
-			}
-		}
-		for (auto p : rvg) {
-			if (!check.contains(p)) {
-				rv.push_back(p);
-				check.insert(p);
-			}
-		}
-		for (auto p : rvt1) {
-			if (!check.contains(p)) {
-				rv.push_back(p);
-				check.insert(p);
-			}
-		}
-		for (auto p : rvt2) {
-			if (!check.contains(p)) {
-				rv.push_back(p);
-				check.insert(p);
-			}
-		}
-		return rv;
+        std::string systemPath = get_registry_value(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", "Path");
+        std::string userPath = get_registry_value(HKEY_CURRENT_USER, "Environment", "Path");
+        std::string msysgitPath = get_registry_value(HKEY_LOCAL_MACHINE, "SOFTWARE\\GitForWindows", "InstallPath");
+        std::string tortoisePath1 = basedir(get_registry_value(HKEY_USERS, ".DEFAULT\\Software\\TortoiseGit", "MSysGit"));
+        std::string tortoisePath2 = basedir(get_registry_value(HKEY_USERS, "S-1-5-18\\Software\\TortoiseGit", "MSysGit"));
+        // Computer\HKEY_LOCAL_MACHINE\SOFTWARE\GitForWindows : InstallPath    + MSYS2_PATH=/usr/local/bin:/usr/bin:/bin
+        // Computer\HKEY_USERS\.DEFAULT\Software\TortoiseGit : MSysGit         + ../ + MSYS2_PATH=/usr/local/bin:/usr/bin:/bin
+        // Computer\HKEY_USERS\S-1-5-18\Software\TortoiseGit        <ditto>
+        //
+        std::vector<std::string> rve = split(path_env, subprocess::kPathDelimiter);
+        std::vector<std::string> rvs = split(systemPath, subprocess::kPathDelimiter);
+        std::vector<std::string> rvu = split(userPath, subprocess::kPathDelimiter);
+        std::vector<std::string> rvg = std::vector<std::string>{
+            msysgitPath + "\\usr\\local\\bin",
+            msysgitPath + "\\usr\\bin",
+            msysgitPath + "\\bin"
+        };
+        std::vector<std::string> rvt1 = std::vector<std::string>{
+            tortoisePath1 + "\\usr\\local\\bin",
+            tortoisePath1 + "\\usr\\bin",
+            tortoisePath1 + "\\bin"
+        };
+        std::vector<std::string> rvt2 = std::vector<std::string>{
+            tortoisePath2 + "\\usr\\local\\bin",
+            tortoisePath2 + "\\usr\\bin",
+            tortoisePath2 + "\\bin"
+        };
+        std::unordered_set<std::string> check;
+        std::vector<std::string> rv;
+        for (auto p : rve) {
+            if (!check.contains(p)) {
+                rv.push_back(p);
+                check.insert(p);
+            }
+        }
+        for (auto p : rvu) {
+            if (!check.contains(p)) {
+                rv.push_back(p);
+                check.insert(p);
+            }
+        }
+        for (auto p : rvs) {
+            if (!check.contains(p)) {
+                rv.push_back(p);
+                check.insert(p);
+            }
+        }
+        for (auto p : rvg) {
+            if (!check.contains(p)) {
+                rv.push_back(p);
+                check.insert(p);
+            }
+        }
+        for (auto p : rvt1) {
+            if (!check.contains(p)) {
+                rv.push_back(p);
+                check.insert(p);
+            }
+        }
+        for (auto p : rvt2) {
+            if (!check.contains(p)) {
+                rv.push_back(p);
+                check.insert(p);
+            }
+        }
+        return rv;
 #else
-		return split(path_env, subprocess::kPathDelimiter);
+        return split(path_env, subprocess::kPathDelimiter);
 #endif
-	}
+    }
 }
 
 namespace subprocess {
@@ -392,16 +392,16 @@ namespace subprocess {
         return false;
     }
 
-	std::string find_program(const std::string& name) {
-		std::string rv = find_program_in_path(name);
+    std::string find_program(const std::string& name) {
+        std::string rv = find_program_in_path(name);
 
-		if (rv.empty() && name == "python3") {
-			std::string test = find_program_in_path("python");
-			if (!test.empty() && is_file(test)) {
-				if (is_python3(test))
-					rv = std::move(test);
-			}
-		}
+        if (rv.empty() && name == "python3") {
+            std::string test = find_program_in_path("python");
+            if (!test.empty() && is_file(test)) {
+                if (is_python3(test))
+                    rv = std::move(test);
+            }
+        }
 
         return rv;
     }
@@ -411,7 +411,7 @@ namespace subprocess {
         g_program_cache.clear();
     }
 
-	std::string escape_shell_arg(std::string arg) {
+    std::string escape_shell_arg(std::string arg) {
         bool needs_quote = false;
         for(std::size_t i = 0; i < arg.size(); ++i) {
             // white list
