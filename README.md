@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
 
 - On windows terminating a process sends CTRL_BREAK_EVENT instead of hard
   termination. You can send a SIGKILL and it will do a hard termination as
-  expected. Becareful as this may kill your process as it's sent to the process
+  expected. Be careful as this may kill your process as it's sent to the process
   group. See send_signal for more details.
 - cin, cout, cerr variable names are used instead of stdin, stdout, stderr as
   std* are macros and cannot be used as names in C++.
