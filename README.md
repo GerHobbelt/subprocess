@@ -167,6 +167,16 @@ All tests pass on linux & mac. Most pass under mingw & MSVC.
 
 # Changelog
 
+# 0.5.0 TBA
+
+- fixed #16 is_drive had a typo and so lowercase drives weren't properly
+  interpretted.
+- fixed #2 subprocess.run() respects timeout passed in.
+- breaking: RunOptions which is used in subprocess::run order is changed to be
+  identical to python subprocess::run. This effects users using c++20 designated
+  initializers. Prior versions of compilers didn't seem to care about order.
+- fixed #5 cin double closed.
+
 # 0.4.0
 
 - `CTRL_BREAK_EVENT` is sent for SIGTERM & terminate() functions on windows.
