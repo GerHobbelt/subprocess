@@ -9,14 +9,16 @@
 #else
 #include <wait.h>
 #endif
-#include <errno.h>
-#include <signal.h>
+#include <cerrno>
+#include <csignal>
 #endif
 
-#include <string.h>
+#include <iterator>
+#include <sstream>
 #include <thread>
 #include <mutex>
 #include <chrono>
+#include <cstring>
 #include <cstring>
 
 #include "shell_utils.hpp"
@@ -29,6 +31,12 @@ using std::nullptr_t;
 
 namespace subprocess {
     namespace details {
+        void throw_os_error(const CommandLine& cmd, int errno_code) {
+            const char* const delim = ", ";
+            std::ostringstream imploded;
+            std::copy(cmd.begin(), cmd.end(), std::ostream_iterator<std::string>(imploded, delim));
+            throw_os_error(imploded.str().c_str(), errno_code);
+        }
         void throw_os_error(const char* function, int errno_code) {
             if (errno_code == 0)
                 return;
@@ -417,7 +425,7 @@ namespace subprocess {
                     continue;
                 }
                 if (child == -1) {
-                    // TODO: throw oserror(errno)
+                    details::throw_os_error(this->args, errno);
                 }
                 break;
             }
@@ -437,6 +445,8 @@ namespace subprocess {
                 return returncode;
             sleep_seconds(0.00001);
         }
+        this->kill();
+
         throw TimeoutExpired("no time");
     }
 

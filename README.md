@@ -22,6 +22,7 @@ for further documentation.
   version so that `find_program("python3")` is cross-platform.
 - Supports connecting process stdin, stdout, stderr to C++ streams making
   redirection convenient. stdin can be connected with a std::string too.
+- Timeouts.
 
 ## Shakey elements
 

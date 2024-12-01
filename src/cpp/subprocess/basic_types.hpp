@@ -178,6 +178,7 @@ namespace subprocess {
     };
 
     namespace details {
+        void throw_os_error(const CommandLine& cmd, int errno_code);
         void throw_os_error(const char* function, int errno_code);
     }
 }
