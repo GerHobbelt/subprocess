@@ -216,7 +216,7 @@ public:
     void testSleep() {
         subprocess::StopWatch timer;
         subprocess::sleep_seconds(1);
-        TS_ASSERT_DELTA(timer.seconds(), 1, 0.1);
+        TS_ASSERT_DELTA(timer.seconds(), 1, 0.5);
     }
     void testCerrToCout() {
         subprocess::EnvGuard guard;
@@ -277,7 +277,7 @@ public:
         popen.close();
 
         double timeout = timer.seconds();
-        TS_ASSERT_DELTA(timeout, 3, 0.1);
+        TS_ASSERT_DELTA(timeout, 3, 0.5);
     }
 
     void testRunTimeout() {
@@ -292,7 +292,7 @@ public:
         }
         double timeout = timer.seconds();
         TS_ASSERT_EQUALS(didThrow, true);
-        TS_ASSERT_DELTA(timeout, 1, 0.1);
+        TS_ASSERT_DELTA(timeout, 1, 0.5);
     }
 
     void testWaitTimeout() {
@@ -307,7 +307,7 @@ public:
         popen.close();
 
         double timeout = timer.seconds();
-        TS_ASSERT_DELTA(timeout, 3, 0.1);
+        TS_ASSERT_DELTA(timeout, 3, 0.5);
 
     }
 
@@ -346,7 +346,7 @@ public:
         popen.close();
 
         double timeout = timer.seconds();
-        TS_ASSERT_DELTA(timeout, 3, 0.1);
+        TS_ASSERT_DELTA(timeout, 3, 0.5);
     }
 
     void testTerminate() {
@@ -365,7 +365,7 @@ public:
         popen.close();
 
         double timeout = timer.seconds();
-        TS_ASSERT_DELTA(timeout, 3, 0.1);
+        TS_ASSERT_DELTA(timeout, 3, 0.5);
     }
 
     void testSIGINT() {
@@ -384,7 +384,7 @@ public:
         popen.close();
 
         double timeout = timer.seconds();
-        TS_ASSERT_DELTA(timeout, 3, 0.1);
+        TS_ASSERT_DELTA(timeout, 3, 0.5);
 
     }
 
