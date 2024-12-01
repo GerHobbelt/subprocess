@@ -47,8 +47,7 @@ endif()
 
 add_subdirectory(src/cpp subprocess)
 
-# NOTE: doesn't compile on Windows
-if (BUILD_TESTING)
+if (BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif(BUILD_TESTING)
