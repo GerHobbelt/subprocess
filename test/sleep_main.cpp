@@ -13,7 +13,6 @@ static void sleep_seconds(double seconds) {
     std::this_thread::sleep_for(duration);
 }
 
-// no echo on windows, so we make this to help test the library
 
 #if defined(BUILD_MONOLITHIC)
 #define main(cnt, arr)      subproc_sleep_main(cnt, arr)

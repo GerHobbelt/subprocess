@@ -22,6 +22,7 @@ for further documentation.
   version so that `find_program("python3")` is cross-platform.
 - Supports connecting process stdin, stdout, stderr to C++ streams making
   redirection convenient. stdin can be connected with a std::string too.
+- Timeouts.
 
 ## Shakey elements
 
@@ -166,6 +167,27 @@ All tests pass on linux & mac. Most pass under mingw & MSVC.
 
 
 # Changelog
+
+# 0.5.0 TBA
+
+- fixed #16 is_drive had a typo and so lowercase drives weren't properly
+  interpretted. Thanks [DarkCat5501](https://github.com/DarkCat5501)
+- fixed #2 subprocess.run() respects timeout passed in. Thanks [wgshwn](https://github.com/wgshwn).
+- breaking: RunOptions which is used in subprocess::run order is changed to be
+  identical to python subprocess::run. This effects users using c++20 designated
+  initializers. Prior versions of compilers didn't seem to care about order.
+- Thanks to [urs-muff](https://github.com/urs-muff) for windows 64bit support
+- Thanks [GerHobbelt](https://github.com/GerHobbelt) for the following
+  - fixed #5 cin double closed.
+  - `_DCRTIMP` for environ
+  - order of [check](https://github.com/benman64/subprocess/pull/8/commits/cbf1a7aff1a627c961f93fb39de94601a52ceb0a) fixed, done so to match python ordering
+    rather than changing example.
+- [yurivict](https://github.com/yurivict) Thanks for FREEBSD compatibility (I
+  have no way of testing this) and use BUILD_TESTING in camke
+- [StableAgOH](https://github.com/StableAgOH) thanks for
+  - pointing out WC_ERR_INVALID_CHARS macro exists and std::string nullptr fix
+  - mingw compatibility fix
+  - github CI pipelines
 
 # 0.4.0
 

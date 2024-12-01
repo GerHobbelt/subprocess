@@ -7,7 +7,7 @@
 #else
 #include <unistd.h>
 #include <spawn.h>
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/wait.h>
 #else
 #include <wait.h>
@@ -32,6 +32,11 @@ using std::isspace;
 
 #if __has_include(<filesystem>)
     #include <filesystem>
+#elif __has_include(<ghc/filesystem.hpp>)
+	#include <ghc/filesystem.hpp>
+    namespace std {
+        namespace filesystem = ghc::filesystem;
+    };
 #else
     #include <experimental/filesystem>
     namespace std {
@@ -55,7 +60,7 @@ namespace {
             if (path.empty())
                 return false;
             return std::filesystem::is_regular_file(path);
-        } catch (std::filesystem::filesystem_error& e) {
+        } catch (std::filesystem::filesystem_error&) {
             return false;
         }
     }
@@ -74,7 +79,7 @@ namespace {
 
 #ifdef _WIN32
     bool is_drive(char c) {
-        return (c >= 'a' && c <= 'a') || (c >= 'A' && c <= 'Z');
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     }
 #endif
 

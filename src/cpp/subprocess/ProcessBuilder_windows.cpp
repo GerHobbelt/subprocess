@@ -9,6 +9,7 @@
 
 #include "shell_utils.hpp"
 #include "environ.hpp"
+#include "utf8_to_utf16.hpp"
 
 static STARTUPINFO g_startupInfo;
 static bool g_startupInfoInit = false;
@@ -47,12 +48,14 @@ namespace subprocess {
         saAttr.bInheritHandle       = TRUE;
         saAttr.lpSecurityDescriptor = NULL;
 
-
-        PROCESS_INFORMATION piProcInfo  = {0};
-        STARTUPINFOA siStartInfo        = {0};
+#ifdef UNICODE
+        STARTUPINFOW siStartInfo         = {0};
+#else
+        STARTUPINFOA siStartInfo         = {0};
+#endif
         BOOL bSuccess = FALSE;
 
-        siStartInfo.cb          = sizeof(STARTUPINFO);
+        siStartInfo.cb          = sizeof(siStartInfo);
         siStartInfo.hStdInput   = GetStdHandle(STD_INPUT_HANDLE);
         siStartInfo.hStdOutput  = GetStdHandle(STD_OUTPUT_HANDLE);
         siStartInfo.hStdError   = GetStdHandle(STD_ERROR_HANDLE);
@@ -71,7 +74,6 @@ namespace subprocess {
             process.cin = cin_pair.output;
             disable_inherit(cin_pair.output);
         }
-
 
         if (cout_option == PipeOption::close) {
             cout_pair = pipe_create();
@@ -109,7 +111,6 @@ namespace subprocess {
         if (cout_option == PipeOption::cerr) {
             siStartInfo.hStdOutput = siStartInfo.hStdError;
         }
-        const char* cwd = this->cwd.empty()? nullptr : this->cwd.c_str();
         std::string args = windows_args(command);
 
         void* env = nullptr;
@@ -130,19 +131,37 @@ namespace subprocess {
         if (this->new_process_group) {
             process_flags |= CREATE_NEW_PROCESS_GROUP;
         }
+
+        process.cwd = this->cwd;
         // Create the child process.
-        bSuccess = CreateProcessA(program.c_str(),
-            (char*)args.c_str(),            // command line
-            NULL,                           // process security attributes
-            NULL,                           // primary thread security attributes
-            TRUE,                           // handles are inherited
-            process_flags,                  // creation flags
-            env,                            // environment
-            cwd,                            // use parent's current directory
-            &siStartInfo,                   // STARTUPINFO pointer
-            &piProcInfo);                   // receives PROCESS_INFORMATION
-        process.process_info = piProcInfo;
-        process.pid = piProcInfo.dwProcessId;
+#ifdef UNICODE // CreateProcessW
+        std::u16string cmd_args{ utf8_to_utf16(args) };
+        bSuccess = CreateProcessW(
+          (LPCWSTR)utf8_to_utf16(program).c_str(),
+          (LPWSTR)cmd_args.data(),                                                      // command line
+          NULL,                                                                         // process security attributes
+          NULL,                                                                         // primary thread security attributes
+          TRUE,                                                                         // handles are inherited
+          process_flags,                                                                // creation flags
+          env,                                                                          // environment
+          (LPCWSTR)(this->cwd.empty() ? nullptr : utf8_to_utf16(this->cwd).c_str()),    // use parent's current directory
+          &siStartInfo,                                                                 // STARTUPINFO pointer
+          &process.process_info);                                                       // receives PROCESS_INFORMATION
+#else // CreateProcessA
+        std::string cmd_args{ args };
+        bSuccess = CreateProcess(
+          (LPCSTR)program.c_str(),
+          (LPSTR)cmd_args.data(),                                                       // command line
+          NULL,                                                                         // process security attributes
+          NULL,                                                                         // primary thread security attributes
+          TRUE,                                                                         // handles are inherited
+          process_flags,                                                                // creation flags
+          env,                                                                          // environment
+          (LPCSTR)(this->cwd.empty() ? nullptr : this->cwd.c_str()),                    // use parent's current directory
+          &siStartInfo,                                                                 // STARTUPINFO pointer
+          &process.process_info);                                                       // receives PROCESS_INFORMATION
+#endif
+        process.pid = process.process_info.dwProcessId;
         if (cin_pair)
             cin_pair.close_input();
         if (cout_pair)
@@ -167,8 +186,6 @@ namespace subprocess {
             throw SpawnError("CreateProcess failed");
         return process;
     }
-
-
 }
 
 #endif

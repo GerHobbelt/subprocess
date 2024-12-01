@@ -10,6 +10,7 @@ endif()
 
 option(BUILD_TESTS "Build tests" ${SUBPROCESS_MASTER_PROJECT})
 
+message(STATUS "build type ${CMAKE_BUILD_TYPE}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CheckCXXCompilerFlag)
 
@@ -27,16 +28,18 @@ endfunction()
 project(subprocess VERSION 0.4.0 LANGUAGES CXX C)
 
 if (NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD 20)
 endif()
 message(STATUS "CMAKE_CXX_STANDARD = ${CMAKE_CXX_STANDARD}")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 enable_cxx_compiler_flag_if_supported(-pedantic)
+enable_cxx_compiler_flag_if_supported(-ggdb)
 
 if(MSVC)
     add_compile_options(-Zc:__cplusplus)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 
@@ -45,8 +48,8 @@ endif()
 add_subdirectory(src/cpp subprocess)
 
 # NOTE: doesn't compile on Windows
-# TODO testing
-if(BUILD_TESTS OR 1)
+if (BUILD_TESTING)
     enable_testing()
     add_subdirectory(test)
-endif()
+endif(BUILD_TESTING)
+

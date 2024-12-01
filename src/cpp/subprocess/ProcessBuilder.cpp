@@ -4,19 +4,21 @@
 
 #else
 #include <spawn.h>
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/wait.h>
 #else
 #include <wait.h>
 #endif
-#include <errno.h>
-#include <signal.h>
+#include <cerrno>
+#include <csignal>
 #endif
 
-#include <string.h>
+#include <iterator>
+#include <sstream>
 #include <thread>
 #include <mutex>
 #include <chrono>
+#include <cstring>
 #include <cstring>
 
 #include "shell_utils.hpp"
@@ -29,6 +31,12 @@ using std::nullptr_t;
 
 namespace subprocess {
     namespace details {
+        void throw_os_error(const CommandLine& cmd, int errno_code) {
+            const char* const delim = ", ";
+            std::ostringstream imploded;
+            std::copy(cmd.begin(), cmd.end(), std::ostream_iterator<std::string>(imploded, delim));
+            throw_os_error(imploded.str().c_str(), errno_code);
+        }
         void throw_os_error(const char* function, int errno_code) {
             if (errno_code == 0)
                 return;
@@ -152,12 +160,13 @@ namespace subprocess {
         });
         thread.detach();
     }
-    void setup_redirect_stream(PipeHandle input, PipeVar& output) {
+    bool setup_redirect_stream(PipeHandle input, PipeVar& output) {
         PipeVarIndex index = static_cast<PipeVarIndex>(output.index());
 
         switch (index) {
+        // these 2 options are handled by the underlaying platform API
         case PipeVarIndex::handle:
-        case PipeVarIndex::option: return;
+        case PipeVarIndex::option: break;
         case PipeVarIndex::string: // doesn't make sense
         case PipeVarIndex::istream: // doesn't make sense
             throw std::domain_error("expected something to output to");
@@ -168,12 +177,14 @@ namespace subprocess {
             pipe_thread(input, std::get<FILE*>(output));
             break;
         }
+        return false;
     }
 
     bool setup_redirect_stream(PipeVar& input, PipeHandle output) {
         PipeVarIndex index = static_cast<PipeVarIndex>(input.index());
 
         switch (index) {
+        // these 2 options are handled by the underlaying platform API
         case PipeVarIndex::handle:
 		case PipeVarIndex::option: break;
         case PipeVarIndex::string:
@@ -230,6 +241,10 @@ namespace subprocess {
         *this = builder.run_command(command);
 
         cin_is_autoclosed = setup_redirect_stream(options.cin, cin);
+        if (cin_is_autoclosed) {
+            // ownership taken
+            cin = kBadPipeValue;
+        }
         setup_redirect_stream(cout, options.cout);
         setup_redirect_stream(cerr, options.cerr);
     }
@@ -336,7 +351,7 @@ namespace subprocess {
     int Popen::wait(double timeout) {
         if (returncode != kBadReturnCode)
             return returncode;
-        DWORD ms = timeout < 0? INFINITE : timeout*1000.0;
+        DWORD ms = timeout < 0 ? INFINITE : (DWORD)(timeout*1000.0);
         DWORD result = WaitForSingleObject(process_info.hProcess, ms);
         if (result == WAIT_TIMEOUT) {
             throw TimeoutExpired("timeout of " + std::to_string(ms) + " expired");
@@ -410,7 +425,7 @@ namespace subprocess {
                     continue;
                 }
                 if (child == -1) {
-                    // TODO: throw oserror(errno)
+                    details::throw_os_error(this->args, errno);
                 }
                 break;
             }
@@ -430,6 +445,8 @@ namespace subprocess {
                 return returncode;
             sleep_seconds(0.00001);
         }
+        this->kill();
+
         throw TimeoutExpired("no time");
     }
 
@@ -551,7 +568,20 @@ namespace subprocess {
             cerr_thread.join();
         }
 
-        popen.wait();
+        try {
+            popen.wait(options.timeout);
+        } catch (subprocess::TimeoutExpired& expired) {
+            popen.send_signal(subprocess::SigNum::PSIGTERM);
+            popen.wait();
+
+            subprocess::TimeoutExpired timeout("subprocess::run timeout reached");
+            timeout.cmd = command;
+            timeout.timeout = options.timeout;
+            timeout.cout = std::move(completed.cout);
+            timeout.cerr = std::move(completed.cerr);
+            throw timeout;
+        }
+
         completed.returncode = popen.returncode;
         completed.args = command;
         if (options.check && completed.returncode != 0) {

@@ -1,5 +1,8 @@
 #pragma once
 #ifdef _WIN32
+#ifndef __MINGW32__
+#define NOMINMAX
+#endif
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -73,7 +76,7 @@ namespace subprocess {
 #ifndef _WIN32
     typedef int PipeHandle;
     typedef ::pid_t pid_t;
-    
+
     /** The path separator for PATH environment variable. */
     constexpr char kPathDelimiter = ':';
     // to please windows we can't have this be a constexpr and be standard c++
@@ -130,7 +133,7 @@ namespace subprocess {
     struct TimeoutExpired : SubprocessError {
         using SubprocessError::SubprocessError;
         /** The command that was running */
-        CommandLine command;
+        CommandLine cmd;
         /** The specified timeout */
         double      timeout;
 
@@ -175,6 +178,7 @@ namespace subprocess {
     };
 
     namespace details {
+        void throw_os_error(const CommandLine& cmd, int errno_code);
         void throw_os_error(const char* function, int errno_code);
     }
 }
